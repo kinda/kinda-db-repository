@@ -23,7 +23,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
   this.getItem = function *(item, options) {
     var name = item.getCollection().getName();
     var key = item.getPrimaryKeyValue();
-    var json = yield this.getDatabase().get(name, key, options);
+    var json = yield this.getDatabase().getItem(name, key, options);
     if (!json) return;
     item.replaceValue(json);
     return item;
@@ -35,14 +35,14 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
     var json = item.serialize();
     options = _.clone(options);
     if (item.isNew) options.errorIfExists = true;
-    json = yield this.getDatabase().put(name, key, json, options);
+    json = yield this.getDatabase().putItem(name, key, json, options);
     if (json) item.replaceValue(json);
   };
 
   this.deleteItem = function *(item, options) {
     var name = item.getCollection().getName();
     var key = item.getPrimaryKeyValue();
-    yield this.getDatabase().del(name, key, options);
+    yield this.getDatabase().deleteItem(name, key, options);
   };
 
   this.getItems = function *(items, options) {
@@ -51,7 +51,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
     var collection = items[0].getCollection();
     var name = collection.getName();
     var keys = _.invoke(items, 'getPrimaryKeyValue');
-    var items = yield this.getDatabase().getMany(name, keys, options);
+    var items = yield this.getDatabase().getItems(name, keys, options);
     items = items.map(function(item) {
       // TODO: like getItem(), try to reuse the passed items instead of
       // build new one
@@ -62,7 +62,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
 
   this.findItems = function *(collection, options) {
     var name = collection.getName();
-    var items = yield this.getDatabase().getRange(name, options);
+    var items = yield this.getDatabase().findItems(name, options);
     items = items.map(function(item) {
       return collection.unserializeItem(item.value);
     });
@@ -71,7 +71,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
 
   this.countItems = function *(collection, options) {
     var name = collection.getName();
-    return yield this.getDatabase().getCount(name, options);
+    return yield this.getDatabase().countItems(name, options);
   };
 });
 
