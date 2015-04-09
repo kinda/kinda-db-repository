@@ -73,6 +73,14 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
     var name = collection.getName();
     return yield this.getDatabase().countItems(name, options);
   };
+
+  this.forEachItems = function *(collection, options, fn, thisArg) {
+    var name = collection.getName();
+    yield this.getDatabase().forEachItems(name, options, function *(value) {
+      var item = collection.unserializeItem(value);
+      yield fn.call(thisArg, item);
+    });
+  };
 });
 
 module.exports = KindaDBRepository;
