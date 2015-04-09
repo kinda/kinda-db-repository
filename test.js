@@ -30,6 +30,7 @@ suite('KindaDBRepository', function() {
     });
 
     users = Users.create();
+    users.context = {};
   });
 
   suiteTeardown(function *() {
@@ -100,6 +101,34 @@ suite('KindaDBRepository', function() {
       var items = yield users.findItems();
       var ids = _.pluck(items, 'id');
       assert.deepEqual(ids, ['aaa', 'eee']);
+    });
+
+    test('change an item inside a transaction', function *() {
+      yield users.transaction(function *() {
+        var item = yield users.getItem('ccc');
+        item.firstName = 'Arthur';
+        yield item.save();
+        var item = yield users.getItem('ccc');
+        assert.strictEqual(item.firstName, 'Arthur');
+      });
+      var item = yield users.getItem('ccc');
+      assert.strictEqual(item.firstName, 'Arthur');
+    });
+
+    test('change an item inside an aborted transaction', function *() {
+      try {
+        yield users.transaction(function *() {
+          var item = yield users.getItem('ccc');
+          item.firstName = 'Arthur';
+          yield item.save();
+          var item = yield users.getItem('ccc');
+          assert.strictEqual(item.firstName, 'Arthur');
+          throw new Error('something wrong');
+        });
+      } catch (err) {
+      }
+      var item = yield users.getItem('ccc');
+      assert.strictEqual(item.firstName, 'Alan');
     });
   });
 });

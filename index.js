@@ -8,6 +8,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
 
   this.setCreator(function(database) {
     this.setDatabase(database);
+    this.repository = this;
   });
 
   this.getDatabase = function() {
@@ -80,6 +81,16 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
       var item = collection.unserializeItem(value);
       yield fn.call(thisArg, item);
     });
+  };
+
+  this.transaction = function *(fn, options) {
+    if (this.repository !== this)
+      return yield fn(this); // we are already in a transaction
+    return yield this.getDatabase().transaction(function *(tr) {
+      var transaction = Object.create(this);
+      transaction.setDatabase(tr);
+      return yield fn(transaction);
+    }.bind(this), options);
   };
 });
 
