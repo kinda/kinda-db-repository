@@ -34,7 +34,7 @@ suite('KindaDBRepository', function() {
   });
 
   suiteTeardown(function *() {
-    yield users.getRepository().getDatabase().destroyDatabase();
+    yield users.getRepository().database.destroyDatabase();
   });
 
   test('put, get and delete some items', function *() {

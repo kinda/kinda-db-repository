@@ -7,15 +7,9 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
   this.isLocal = true; // TODO: improve this
 
   this.setCreator(function(database) {
-    this.setDatabase(database);
+    this.database = database;
     this.repository = this;
   });
-
-  this.getDatabase = function() {
-    var database = this._database;
-    if (!database) throw new Error('undefined database');
-    return database;
-  };
 
   this.setDatabase = function(database) {
     this._database = database;
@@ -24,7 +18,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
   this.getItem = function *(item, options) {
     var name = item.getCollection().getName();
     var key = item.getPrimaryKeyValue();
-    var json = yield this.getDatabase().getItem(name, key, options);
+    var json = yield this.database.getItem(name, key, options);
     if (!json) return;
     item.replaceValue(json);
     return item;
@@ -36,14 +30,14 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
     var json = item.serialize();
     options = _.clone(options);
     if (item.isNew) options.errorIfExists = true;
-    json = yield this.getDatabase().putItem(name, key, json, options);
+    json = yield this.database.putItem(name, key, json, options);
     if (json) item.replaceValue(json);
   };
 
   this.deleteItem = function *(item, options) {
     var name = item.getCollection().getName();
     var key = item.getPrimaryKeyValue();
-    yield this.getDatabase().deleteItem(name, key, options);
+    yield this.database.deleteItem(name, key, options);
   };
 
   this.getItems = function *(items, options) {
@@ -52,7 +46,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
     var collection = items[0].getCollection();
     var name = collection.getName();
     var keys = _.invoke(items, 'getPrimaryKeyValue');
-    var items = yield this.getDatabase().getItems(name, keys, options);
+    var items = yield this.database.getItems(name, keys, options);
     items = items.map(function(item) {
       // TODO: like getItem(), try to reuse the passed items instead of
       // build new one
@@ -63,7 +57,7 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
 
   this.findItems = function *(collection, options) {
     var name = collection.getName();
-    var items = yield this.getDatabase().findItems(name, options);
+    var items = yield this.database.findItems(name, options);
     items = items.map(function(item) {
       return collection.unserializeItem(item.value);
     });
@@ -72,12 +66,12 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
 
   this.countItems = function *(collection, options) {
     var name = collection.getName();
-    return yield this.getDatabase().countItems(name, options);
+    return yield this.database.countItems(name, options);
   };
 
   this.forEachItems = function *(collection, options, fn, thisArg) {
     var name = collection.getName();
-    yield this.getDatabase().forEachItems(name, options, function *(value) {
+    yield this.database.forEachItems(name, options, function *(value) {
       var item = collection.unserializeItem(value);
       yield fn.call(thisArg, item);
     });
@@ -86,9 +80,9 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
   this.transaction = function *(fn, options) {
     if (this.repository !== this)
       return yield fn(this); // we are already in a transaction
-    return yield this.getDatabase().transaction(function *(tr) {
+    return yield this.database.transaction(function *(tr) {
       var transaction = Object.create(this);
-      transaction.setDatabase(tr);
+      transaction.database = tr;
       return yield fn(transaction);
     }.bind(this), options);
   };
