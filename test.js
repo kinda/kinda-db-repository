@@ -10,6 +10,16 @@ var KindaDBRepository = require('./');
 suite('KindaDBRepository', function() {
   var users;
 
+  var catchError = function *(fn) {
+    var err;
+    try {
+      yield fn();
+    } catch (e) {
+      err = e
+    }
+    return err;
+  };
+
   suiteSetup(function *() {
     var db = KindaDB.create('Test', 'mysql://test@localhost/test');
     db.registerMigration(1, function *() {
@@ -47,6 +57,41 @@ suite('KindaDBRepository', function() {
     yield item.delete();
     var item = yield users.getItem(id, { errorIfMissing: false });
     assert.isUndefined(item);
+  });
+
+  test('get a missing item', function *() {
+    var err = yield catchError(function *() {
+      yield users.getItem('xyz');
+    });
+    assert.instanceOf(err, Error);
+
+    var item = yield users.getItem('xyz', { errorIfMissing: false });
+    assert.isUndefined(item);
+  });
+
+  test('put an already existing item', function *() {
+    var jack = users.createItem({ firstName: 'Jack', age: 72 });
+    yield jack.save();
+    var err = yield catchError(function *() {
+      var jack2 = users.createItem({ id: jack.id, firstName: 'Jack', age: 25 });
+      yield jack2.save();
+    });
+    assert.instanceOf(err, Error);
+
+    yield jack.delete();
+  });
+
+  test('delete a missing item', function *() {
+    var err = yield catchError(function *() {
+      yield users.deleteItem('xyz');
+    });
+    assert.instanceOf(err, Error);
+
+
+    var err = yield catchError(function *() {
+      yield users.deleteItem('xyz', { errorIfMissing: false });
+    });
+    assert.isUndefined(err);
   });
 
   suite('with many items', function() {
