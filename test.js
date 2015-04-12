@@ -30,12 +30,11 @@ suite('KindaDBRepository', function() {
     var repository = KindaDBRepository.create(db);
 
     var Users = Collection.extend('Users', function() {
-      this.Item = this.Item.extend('Checking', function() {
+      this.Item = this.Item.extend('User', function() {
         this.addPrimaryKeyProperty('id', String);
         this.addProperty('firstName', String);
         this.addProperty('age', Number);
       });
-
       this.setRepository(repository);
     });
 
