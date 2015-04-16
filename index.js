@@ -77,6 +77,12 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
     });
   };
 
+  this.findAndDeleteItems = function *(collection, options) {
+    yield this.forEachItems(collection, options, function *(item) {
+      yield this.deleteItem(item, { errorIfMissing: false });
+    }, this);
+  };
+
   this.transaction = function *(fn, options) {
     if (this.repository !== this)
       return yield fn(this); // we are already in a transaction
