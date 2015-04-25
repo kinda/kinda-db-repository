@@ -3,7 +3,7 @@
 var _ = require('lodash');
 var KindaObject = require('kinda-object');
 
-var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
+var KindaLocalRepository = KindaObject.extend('KindaLocalRepository', function() {
   this.isLocal = true; // TODO: improve this
 
   this.setCreator(function(database) {
@@ -94,4 +94,4 @@ var KindaDBRepository = KindaObject.extend('KindaDBRepository', function() {
   };
 });
 
-module.exports = KindaDBRepository;
+module.exports = KindaLocalRepository;

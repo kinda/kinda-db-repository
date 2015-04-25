@@ -1,4 +1,4 @@
-# kinda-db-repository [![Build Status](https://travis-ci.org/kinda/kinda-db-repository.svg?branch=master)](https://travis-ci.org/kinda/kinda-db-repository)
+# kinda-local-repository [![Build Status](https://travis-ci.org/kinda/kinda-local-repository.svg?branch=master)](https://travis-ci.org/kinda/kinda-local-repository)
 
 ```js
 // TODO: documentation!

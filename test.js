@@ -5,9 +5,9 @@ var assert = require('chai').assert;
 var _ = require('lodash');
 var Collection = require('kinda-collection');
 var KindaDB = require('kinda-db');
-var KindaDBRepository = require('./');
+var KindaLocalRepository = require('./');
 
-suite('KindaDBRepository', function() {
+suite('KindaLocalRepository', function() {
   var users;
 
   var catchError = function *(fn) {
@@ -27,7 +27,7 @@ suite('KindaDBRepository', function() {
     });
     yield db.initializeDatabase();
 
-    var repository = KindaDBRepository.create(db);
+    var repository = KindaLocalRepository.create(db);
 
     var Users = Collection.extend('Users', function() {
       this.Item = this.Item.extend('User', function() {

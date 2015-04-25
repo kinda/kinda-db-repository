@@ -1,10 +1,10 @@
 {
-  "name": "kinda-db-repository",
+  "name": "kinda-local-repository",
   "version": "0.1.3",
   "description": "...",
   "repository": {
     "type": "git",
-    "url": "git://github.com/kinda/kinda-db-repository"
+    "url": "git://github.com/kinda/kinda-local-repository"
   },
   "main": "index.js",
   "scripts": {
