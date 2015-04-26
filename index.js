@@ -16,7 +16,7 @@ var KindaLocalRepository = KindaObject.extend('KindaLocalRepository', function()
     var tables = [];
     collections.forEach(function(collection) {
       var collectionPrototype = collection.getPrototype();
-      collectionPrototype.setRepository(this);
+      collectionPrototype.setRepository(this); // TODO: remove this
       var itemPrototype = collectionPrototype.Item.getPrototype();
       var table = {
         name: collection.getName(),
