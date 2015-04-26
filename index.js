@@ -2,12 +2,29 @@
 
 var _ = require('lodash');
 var KindaObject = require('kinda-object');
+var KindaDB = require('kinda-db');
 
 var KindaLocalRepository = KindaObject.extend('KindaLocalRepository', function() {
   this.isLocal = true; // TODO: improve this
 
-  this.setCreator(function(database) {
-    this.database = database;
+  this.setCreator(function(name, url, collections, options) {
+    if (!name) throw new Error('name is missing');
+    if (!url) throw new Error('url is missing');
+    if (!_.isArray(collections)) throw new Error('collections parameter is invalid');
+    if (!options) options = {};
+    this.name = name;
+    var tables = [];
+    collections.forEach(function(collection) {
+      var collectionPrototype = collection.getPrototype();
+      collectionPrototype.setRepository(this);
+      var itemPrototype = collectionPrototype.Item.getPrototype();
+      var table = {
+        name: collection.getName(),
+        indexes: itemPrototype.getIndexes()
+      };
+      tables.push(table);
+    }, this);
+    this.database = KindaDB.create(name, url, tables);
     this.repository = this;
   });
 

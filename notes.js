@@ -1,4 +1,4 @@
-var repository = LocalRepository.create('Test', db, [
+var repository = LocalRepository.create('Test', 'mysql://...', [
   People,
   Images,
   Songs

@@ -4,7 +4,6 @@ require('co-mocha');
 var assert = require('chai').assert;
 var _ = require('lodash');
 var Collection = require('kinda-collection');
-var KindaDB = require('kinda-db');
 var KindaLocalRepository = require('./');
 
 suite('KindaLocalRepository', function() {
@@ -21,22 +20,19 @@ suite('KindaLocalRepository', function() {
   };
 
   suiteSetup(function *() {
-    var db = KindaDB.create('Test', 'mysql://test@localhost/test');
-    db.registerMigration(1, function *() {
-      yield this.addTable('Users');
-    });
-    yield db.initializeDatabase();
-
-    var repository = KindaLocalRepository.create(db);
-
     var Users = Collection.extend('Users', function() {
       this.Item = this.Item.extend('User', function() {
         this.addPrimaryKeyProperty('id', String);
         this.addProperty('firstName', String);
         this.addProperty('age', Number);
       });
-      this.setRepository(repository);
     });
+
+    var repository = KindaLocalRepository.create(
+      'Test',
+      'mysql://test@localhost/test',
+      [Users]
+    );
 
     users = Users.create();
     users.context = {};
