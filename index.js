@@ -1,31 +1,26 @@
 "use strict";
 
 var _ = require('lodash');
-var KindaObject = require('kinda-object');
+var KindaAbstractRepository = require('kinda-abstract-repository');
 var KindaDB = require('kinda-db');
 
-var KindaLocalRepository = KindaObject.extend('KindaLocalRepository', function() {
+var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository', function() {
   this.isLocal = true; // TODO: improve this
 
-  this.setCreator(function(name, url, collections, options) {
-    if (!name) throw new Error('name is missing');
-    if (!url) throw new Error('url is missing');
-    if (!_.isArray(collections)) throw new Error('collections parameter is invalid');
-    if (!options) options = {};
-    this.name = name;
+  var superCreator = this.getCreator();
+  this.setCreator(function(name, url, collectionClasses, options) {
+    superCreator.apply(this, arguments);    
     var tables = [];
-    collections.forEach(function(collection) {
-      var collectionPrototype = collection.getPrototype();
-      collectionPrototype.setRepository(this); // TODO: remove this
+    collectionClasses.forEach(function(klass) {
+      var collectionPrototype = klass.getPrototype();
       var itemPrototype = collectionPrototype.Item.getPrototype();
       var table = {
-        name: collection.getName(),
+        name: klass.getName(),
         indexes: itemPrototype.getIndexes()
       };
       tables.push(table);
     }, this);
     this.database = KindaDB.create(name, url, tables);
-    this.repository = this;
   });
 
   this.setDatabase = function(database) {

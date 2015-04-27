@@ -34,7 +34,7 @@ suite('KindaLocalRepository', function() {
       [Users]
     );
 
-    users = Users.create();
+    users = repository.createCollection('Users');
     users.context = {};
   });
 
