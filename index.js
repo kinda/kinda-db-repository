@@ -2,25 +2,25 @@
 
 var _ = require('lodash');
 var KindaAbstractRepository = require('kinda-abstract-repository');
-var KindaDB = require('kinda-db');
+var KindaObjectDB = require('kinda-object-db');
 
 var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository', function() {
   this.isLocal = true; // TODO: improve this
 
   var superCreator = this.getCreator();
   this.setCreator(function(name, url, collectionClasses, options) {
-    superCreator.apply(this, arguments);    
-    var tables = [];
+    superCreator.apply(this, arguments);
+    var classes = [];
     collectionClasses.forEach(function(klass) {
       var collectionPrototype = klass.getPrototype();
-      var itemPrototype = collectionPrototype.Item.getPrototype();
-      var table = {
-        name: klass.getName(),
+      var itemClass = collectionPrototype.Item;
+      var itemPrototype = itemClass.getPrototype();
+      classes.push({
+        name: itemClass.getName(),
         indexes: itemPrototype.getIndexes()
-      };
-      tables.push(table);
+      });
     }, this);
-    this.database = KindaDB.create(name, url, tables);
+    this.database = KindaObjectDB.create(name, url, classes);
   });
 
   this.setDatabase = function(database) {
@@ -28,65 +28,83 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   };
 
   this.getItem = function *(item, options) {
-    var name = item.getCollection().getName();
+    var className = item.getClassName();
     var key = item.getPrimaryKeyValue();
-    var json = yield this.database.getItem(name, key, options);
-    if (!json) return;
-    item.replaceValue(json);
+    var result = yield this.database.getItem(className, key, options);
+    if (!result) return; // means item is not found and errorIfMissing is false
+    var resultClassName = result.classes[0];
+    if (resultClassName === className) {
+      item.replaceValue(result.value);
+    } else {
+      var collection = this.createCollectionFromItemClassName(resultClassName);
+      item = collection.unserializeItem(result.value);
+    }
     return item;
   };
 
   this.putItem = function *(item, options) {
-    var name = item.getCollection().getName();
+    var classNames = [];
+    item.getSuperclasses().forEach(function(superclass) {
+      var prototype = superclass.getPrototype();
+      if (!prototype.getPrimaryKeyProperty) return;
+      if (!prototype.getPrimaryKeyProperty(false)) return;
+      classNames.push(superclass.getName());
+    });
+    classNames.unshift(item.getClassName());
+    classNames = _.uniq(classNames);
     var key = item.getPrimaryKeyValue();
     var json = item.serialize();
     options = _.clone(options);
     if (item.isNew) options.errorIfExists = true;
-    json = yield this.database.putItem(name, key, json, options);
-    if (json) item.replaceValue(json);
+    yield this.database.putItem(classNames, key, json, options);
   };
 
   this.deleteItem = function *(item, options) {
-    var name = item.getCollection().getName();
+    var className = item.getClassName();
     var key = item.getPrimaryKeyValue();
-    yield this.database.deleteItem(name, key, options);
+    yield this.database.deleteItem(className, key, options);
   };
 
   this.getItems = function *(items, options) {
     if (!items.length) return [];
     // we suppose that every items are part of the same collection:
-    var collection = items[0].getCollection();
-    var name = collection.getName();
+    var className = items[0].getClassName();
     var keys = _.invoke(items, 'getPrimaryKeyValue');
-    var items = yield this.database.getItems(name, keys, options);
-    items = items.map(function(item) {
+    var results = yield this.database.getItems(className, keys, options);
+    var items = results.map(function(result) {
       // TODO: like getItem(), try to reuse the passed items instead of
       // build new one
-      return collection.unserializeItem(item.value);
-    });
+      var resultClassName = result.classes[0];
+      var collection = this.createCollectionFromItemClassName(resultClassName);
+      return collection.unserializeItem(result.value);
+    }, this);
     return items;
   };
 
   this.findItems = function *(collection, options) {
-    var name = collection.getName();
-    var items = yield this.database.findItems(name, options);
-    items = items.map(function(item) {
-      return collection.unserializeItem(item.value);
-    });
+    var className = collection.Item.getName();
+    var results = yield this.database.findItems(className, options);
+    var items = results.map(function(result) {
+      var resultClassName = result.classes[0];
+      var collection = this.createCollectionFromItemClassName(resultClassName);
+      return collection.unserializeItem(result.value);
+    }, this);
     return items;
   };
 
   this.countItems = function *(collection, options) {
-    var name = collection.getName();
-    return yield this.database.countItems(name, options);
+    var className = collection.Item.getName();
+    return yield this.database.countItems(className, options);
   };
 
   this.forEachItems = function *(collection, options, fn, thisArg) {
-    var name = collection.getName();
-    yield this.database.forEachItems(name, options, function *(value) {
-      var item = collection.unserializeItem(value);
+    var className = collection.Item.getName();
+    yield this.database.forEachItems(className, options, function *(result) {
+      var resultClassName = result.classes[0];
+      var collection = this.createCollectionFromItemClassName(resultClassName);
+      var item = collection.unserializeItem(result.value);
       yield fn.call(thisArg, item);
-    });
+    }, this);
   };
 
   this.findAndDeleteItems = function *(collection, options) {
@@ -96,13 +114,16 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   };
 
   this.transaction = function *(fn, options) {
-    if (this.repository !== this)
-      return yield fn(this); // we are already in a transaction
+    if (this.isInsideTransaction()) return yield fn(this);
     return yield this.database.transaction(function *(tr) {
       var transaction = Object.create(this);
       transaction.database = tr;
       return yield fn(transaction);
     }.bind(this), options);
+  };
+
+  this.isInsideTransaction = function() {
+    return this !== this.repository;
   };
 });
 
