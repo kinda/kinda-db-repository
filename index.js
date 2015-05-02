@@ -71,11 +71,12 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     var className = items[0].getClassName();
     var keys = _.invoke(items, 'getPrimaryKeyValue');
     var results = yield this.database.getItems(className, keys, options);
+    var cache = {};
     var items = results.map(function(result) {
       // TODO: like getItem(), try to reuse the passed items instead of
       // build new one
       var resultClassName = result.classes[0];
-      var collection = this.createCollectionFromItemClassName(resultClassName);
+      var collection = this.createCollectionFromItemClassName(resultClassName, cache);
       return collection.unserializeItem(result.value);
     }, this);
     return items;
@@ -84,9 +85,10 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   this.findItems = function *(collection, options) {
     var className = collection.Item.getName();
     var results = yield this.database.findItems(className, options);
+    var cache = {};
     var items = results.map(function(result) {
       var resultClassName = result.classes[0];
-      var collection = this.createCollectionFromItemClassName(resultClassName);
+      var collection = this.createCollectionFromItemClassName(resultClassName, cache);
       return collection.unserializeItem(result.value);
     }, this);
     return items;
@@ -99,9 +101,10 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   this.forEachItems = function *(collection, options, fn, thisArg) {
     var className = collection.Item.getName();
+    var cache = {};
     yield this.database.forEachItems(className, options, function *(result) {
       var resultClassName = result.classes[0];
-      var collection = this.createCollectionFromItemClassName(resultClassName);
+      var collection = this.createCollectionFromItemClassName(resultClassName, cache);
       var item = collection.unserializeItem(result.value);
       yield fn.call(thisArg, item);
     }, this);
