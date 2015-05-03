@@ -69,7 +69,12 @@ suite('KindaLocalRepository', function() {
   });
 
   suiteTeardown(function *() {
-    yield repository.database.destroyDatabase();
+    yield repository.destroyRepository();
+  });
+
+  test('repository id', function *() {
+    var id = yield repository.getRepositoryId();
+    assert.ok(id);
   });
 
   test('put, get and delete some items', function *() {
