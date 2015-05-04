@@ -251,7 +251,7 @@ suite('KindaLocalRepository', function() {
 
     test('change an item inside a transaction', function *() {
       assert.isFalse(people.getRepository().isInsideTransaction());
-      yield people.transaction(function *(tr) {
+      yield people.transaction(function *() {
         assert.isTrue(people.getRepository().isInsideTransaction());
         var item = yield people.getItem('bbb');
         assert.strictEqual(item.lastName, 'Daniel');
@@ -267,7 +267,7 @@ suite('KindaLocalRepository', function() {
     test('change an item inside an aborted transaction', function *() {
       var err = yield catchError(function *() {
         assert.isFalse(people.getRepository().isInsideTransaction());
-        yield people.transaction(function *(tr) {
+        yield people.transaction(function *() {
           assert.isTrue(people.getRepository().isInsideTransaction());
           var item = yield people.getItem('bbb');
           assert.strictEqual(item.lastName, 'Daniel');

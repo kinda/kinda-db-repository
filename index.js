@@ -138,7 +138,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   this.getRepositoryId = function *() {
     if (this._repositoryId) return this._repositoryId;
     var record = yield this.loadRepositoryRecord();
-    this._repositoryId = record.id;
+    this.repository._repositoryId = record.id;
     return record.id;
   };
 
