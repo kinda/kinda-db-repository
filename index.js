@@ -80,7 +80,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     return yield tr.get([this.name, '$Repository'], { errorIfMissing: errorIfMissing });
   };
 
-  this.saveRepositoryRecord = function *(tr, record, errorIfExists) {
+  this.saveRepositoryRecord = function *(record, tr, errorIfExists) {
     if (!tr) tr = this.getStore();
     yield tr.put([this.name, '$Repository'], record, {
       errorIfExists: errorIfExists,
@@ -98,7 +98,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
           version: VERSION,
           id: idgen(16)
         };
-        yield this.saveRepositoryRecord(tr, record, true);
+        yield this.saveRepositoryRecord(record, tr, true);
         hasBeenCreated = true;
         yield this.emitAsync('didCreate');
         log.info("Repository '" + this.name + "' created");
@@ -124,7 +124,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     }
 
     record.version = VERSION;
-    yield this.saveRepositoryRecord(undefined, record);
+    yield this.saveRepositoryRecord(record);
     log.info("Repository '" + this.name + "' upgraded to version " + VERSION);
 
     this.emit('upgradeDidStop');
