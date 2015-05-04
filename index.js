@@ -76,6 +76,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   this.loadRepositoryRecord = function *(tr, errorIfMissing) {
     if (!tr) tr = this.getStore();
+    yield this.initializeRepository();
     if (errorIfMissing == null) errorIfMissing = true;
     return yield tr.get([this.name, '$Repository'], { errorIfMissing: errorIfMissing });
   };
@@ -136,7 +137,6 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   this.getRepositoryId = function *() {
     if (this._repositoryId) return this._repositoryId;
-    yield this.initializeRepository();
     var record = yield this.loadRepositoryRecord();
     this._repositoryId = record.id;
     return record.id;
