@@ -45,6 +45,10 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     }.bind(this))
   });
 
+  this.getStore = function() {
+    return this.objectDatabase.getStore();
+  };
+
   this.initializeRepository = function *() {
     if (this.hasBeenInitialized) return;
     if (this.isInitializing) return;
@@ -71,13 +75,13 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   };
 
   this.loadRepositoryRecord = function *(tr, errorIfMissing) {
-    if (!tr) tr = this.objectDatabase.database.store;
+    if (!tr) tr = this.getStore();
     if (errorIfMissing == null) errorIfMissing = true;
     return yield tr.get([this.name, '$Repository'], { errorIfMissing: errorIfMissing });
   };
 
   this.saveRepositoryRecord = function *(tr, record, errorIfExists) {
-    if (!tr) tr = this.objectDatabase.database.store;
+    if (!tr) tr = this.getStore();
     yield tr.put([this.name, '$Repository'], record, {
       errorIfExists: errorIfExists,
       createIfMissing: !errorIfExists
@@ -86,7 +90,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   this.createRepositoryIfDoesNotExist = function *(tr) {
     var hasBeenCreated = false;
-    yield this.objectDatabase.database.store.transaction(function *(tr) {
+    yield this.getStore().transaction(function *(tr) {
       var record = yield this.loadRepositoryRecord(tr, false);
       if (!record) {
         record = {
@@ -186,6 +190,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     if (item.isNew) options.errorIfExists = true;
     yield this.initializeRepository();
     yield this.objectDatabase.putItem(classNames, key, json, options);
+    yield this.emitAsync('didPutItem', item, options);
   };
 
   this.deleteItem = function *(item, options) {
@@ -193,6 +198,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     var key = item.getPrimaryKeyValue();
     yield this.initializeRepository();
     yield this.objectDatabase.deleteItem(className, key, options);
+    yield this.emitAsync('didDeleteItem', item, options);
   };
 
   this.getItems = function *(items, options) {

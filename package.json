@@ -20,7 +20,7 @@
     "idgen": "^2.0.2",
     "kinda-abstract-repository": "^0.2.1",
     "kinda-log": "^0.1.10",
-    "kinda-object-db": "^0.1.6",
+    "kinda-object-db": "^0.1.7",
     "lodash": "^3.5.0"
   },
   "devDependencies": {
