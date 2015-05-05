@@ -20,13 +20,13 @@ suite('KindaLocalRepository', function() {
   };
 
   suiteSetup(function *() {
-    var Items = Collection.extend('Items', function() {
-      this.Item = this.Item.extend('Item', function() {
+    var Elements = Collection.extend('Elements', function() {
+      this.Item = this.Item.extend('Element', function() {
         this.addPrimaryKeyProperty('id', String);
       });
     });
 
-    var Accounts = Items.extend('Accounts', function() {
+    var Accounts = Elements.extend('Accounts', function() {
       this.Item = this.Item.extend('Account', function() {
         this.addProperty('accountNumber', Number);
         this.addProperty('country', String);
@@ -35,7 +35,7 @@ suite('KindaLocalRepository', function() {
       });
     });
 
-    var People = Items.extend('People', function() {
+    var People = Elements.extend('People', function() {
       this.include(Accounts);
       this.Item = this.Item.extend('Person', function() {
         this.addProperty('firstName', String);
@@ -44,7 +44,7 @@ suite('KindaLocalRepository', function() {
       });
     });
 
-    var Companies = Items.extend('Companies', function() {
+    var Companies = Elements.extend('Companies', function() {
       this.include(Accounts);
       this.Item = this.Item.extend('Company', function() {
         this.addProperty('name', String);
@@ -55,7 +55,7 @@ suite('KindaLocalRepository', function() {
     repository = KindaLocalRepository.create(
       'Test',
       'mysql://test@localhost/test',
-      [Accounts, People, Companies]
+      [Elements, Accounts, People, Companies]
     );
 
     accounts = repository.createCollection('Accounts');
@@ -70,6 +70,11 @@ suite('KindaLocalRepository', function() {
 
   suiteTeardown(function *() {
     yield repository.destroyRepository();
+  });
+
+  test('get root collection class', function *() {
+    var klass = repository.getRootCollectionClass();
+    assert.strictEqual(klass.getName(), 'Elements');
   });
 
   test('repository id', function *() {
