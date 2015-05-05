@@ -175,15 +175,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   };
 
   this.putItem = function *(item, options) {
-    var classNames = [];
-    item.getSuperclasses().forEach(function(superclass) {
-      var prototype = superclass.getPrototype();
-      if (!prototype.getPrimaryKeyProperty) return;
-      if (!prototype.getPrimaryKeyProperty(false)) return;
-      classNames.push(superclass.getName());
-    });
-    classNames.unshift(item.getClassName());
-    classNames = _.uniq(classNames);
+    var classNames = item.getClassNames();
     var key = item.getPrimaryKeyValue();
     var json = item.serialize();
     options = _.clone(options);
