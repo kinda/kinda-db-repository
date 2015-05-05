@@ -169,6 +169,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
       item.replaceValue(result.value);
     } else {
       var collection = this.createCollectionFromItemClassName(resultClassName);
+      collection.context = item.context;
       item = collection.unserializeItem(result.value);
     }
     return item;
@@ -197,6 +198,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     if (!items.length) return [];
     // we suppose that every items are part of the same collection:
     var className = items[0].getClassName();
+    var context = items[0].context;
     var keys = _.invoke(items, 'getPrimaryKeyValue');
     yield this.initializeRepository();
     var results = yield this.objectDatabase.getItems(className, keys, options);
@@ -206,6 +208,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
       // build new one
       var resultClassName = result.classes[0];
       var collection = this.createCollectionFromItemClassName(resultClassName, cache);
+      collection.context = context;
       return collection.unserializeItem(result.value);
     }, this);
     return items;
@@ -213,12 +216,14 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   this.findItems = function *(collection, options) {
     var className = collection.Item.getName();
+    var context = collection.context;
     yield this.initializeRepository();
     var results = yield this.objectDatabase.findItems(className, options);
     var cache = {};
     var items = results.map(function(result) {
       var resultClassName = result.classes[0];
       var collection = this.createCollectionFromItemClassName(resultClassName, cache);
+      collection.context = context;
       return collection.unserializeItem(result.value);
     }, this);
     return items;
@@ -232,11 +237,13 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   this.forEachItems = function *(collection, options, fn, thisArg) {
     var className = collection.Item.getName();
+    var context = collection.context;
     var cache = {};
     yield this.initializeRepository();
     yield this.objectDatabase.forEachItems(className, options, function *(result) {
       var resultClassName = result.classes[0];
       var collection = this.createCollectionFromItemClassName(resultClassName, cache);
+      collection.context = context;
       var item = collection.unserializeItem(result.value);
       yield fn.call(thisArg, item);
     }, this);
