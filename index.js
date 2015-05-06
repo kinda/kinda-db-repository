@@ -190,8 +190,11 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     var className = item.getClassName();
     var key = item.getPrimaryKeyValue();
     yield this.initializeRepository();
-    yield this.objectDatabase.deleteItem(className, key, options);
-    yield this.emitAsync('didDeleteItem', item, options);
+    var hasBeenDeleted = yield this.objectDatabase.deleteItem(
+      className, key, options
+    );
+    if (hasBeenDeleted) yield this.emitAsync('didDeleteItem', item, options);
+    return hasBeenDeleted;
   };
 
   this.getItems = function *(items, options) {
@@ -250,9 +253,12 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   };
 
   this.findAndDeleteItems = function *(collection, options) {
+    var deletedItemsCount = 0;
     yield this.forEachItems(collection, options, function *(item) {
-      yield this.deleteItem(item, { errorIfMissing: false });
+      var hasBeenDeleted = yield this.deleteItem(item, { errorIfMissing: false });
+      if (hasBeenDeleted) deletedItemsCount++;
     }, this);
+    return deletedItemsCount;
   };
 });
 

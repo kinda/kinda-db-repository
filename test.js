@@ -94,7 +94,8 @@ suite('KindaLocalRepository', function() {
     var item = yield people.getItem(id);
     assert.strictEqual(item.accountNumber, 12345);
     assert.strictEqual(item.firstName, 'Manuel');
-    yield item.delete();
+    var hasBeenDeleted = yield item.delete();
+    assert.isTrue(hasBeenDeleted);
     var item = yield people.getItem(id, { errorIfMissing: false });
     assert.isUndefined(item);
   });
@@ -127,9 +128,11 @@ suite('KindaLocalRepository', function() {
     });
     assert.instanceOf(err, Error);
 
+    var hasBeenDeleted;
     var err = yield catchError(function *() {
-      yield people.deleteItem('xyz', { errorIfMissing: false });
+      hasBeenDeleted = yield people.deleteItem('xyz', { errorIfMissing: false });
     });
+    assert.isFalse(hasBeenDeleted);
     assert.isUndefined(err);
   });
 
@@ -248,10 +251,13 @@ suite('KindaLocalRepository', function() {
 
     test('find and delete items', function *() {
       var options = { query: { country: 'France' }, batchSize: 2 };
-      yield accounts.findAndDeleteItems(options);
+      var deletedItemsCount = yield accounts.findAndDeleteItems(options);
+      assert.strictEqual(deletedItemsCount, 3);
       var items = yield accounts.findItems();
       var ids = _.pluck(items, 'id');
       assert.deepEqual(ids, ['bbb', 'ccc', 'ddd']);
+      deletedItemsCount = yield accounts.findAndDeleteItems(options);
+      assert.strictEqual(deletedItemsCount, 0);
     });
 
     test('change an item inside a transaction', function *() {
