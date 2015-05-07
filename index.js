@@ -132,11 +132,11 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   };
 
   this.destroyRepository = function *() {
-    this.emitAsync('willDestroy');
+    yield this.emitAsync('willDestroy');
     yield this.objectDatabase.destroyObjectDatabase();
     this.hasBeenInitialized = false;
     delete this.repository._repositoryId;
-    this.emitAsync('didDestroy');
+    yield this.emitAsync('didDestroy');
   };
 
   this.getRepositoryId = function *() {
