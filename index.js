@@ -259,7 +259,7 @@ var KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   this.findAndDeleteItems = function *(collection, options) {
     var deletedItemsCount = 0;
     yield this.forEachItems(collection, options, function *(item) {
-      var hasBeenDeleted = yield this.deleteItem(item, { errorIfMissing: false });
+      var hasBeenDeleted = yield item.delete({ errorIfMissing: false });
       if (hasBeenDeleted) deletedItemsCount++;
     }, this);
     return deletedItemsCount;
