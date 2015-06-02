@@ -1,32 +1,32 @@
-"use strict";
+'use strict';
 
 require('co-mocha');
-var assert = require('chai').assert;
-var _ = require('lodash');
-var Collection = require('kinda-collection');
-var KindaLocalRepository = require('./');
+let assert = require('chai').assert;
+let _ = require('lodash');
+let Collection = require('kinda-collection');
+let KindaLocalRepository = require('./src');
 
 suite('KindaLocalRepository', function() {
-  var repository, accounts, people, companies;
+  let repository, accounts, people, companies;
 
-  var catchError = function *(fn) {
-    var err;
+  let catchError = function *(fn) {
+    let err;
     try {
       yield fn();
     } catch (e) {
-      err = e
+      err = e;
     }
     return err;
   };
 
   suiteSetup(function *() {
-    var Elements = Collection.extend('Elements', function() {
+    let Elements = Collection.extend('Elements', function() {
       this.Item = this.Item.extend('Element', function() {
         this.addPrimaryKeyProperty('id', String);
       });
     });
 
-    var Accounts = Elements.extend('Accounts', function() {
+    let Accounts = Elements.extend('Accounts', function() {
       this.Item = this.Item.extend('Account', function() {
         this.addProperty('accountNumber', Number);
         this.addProperty('country', String);
@@ -35,7 +35,7 @@ suite('KindaLocalRepository', function() {
       });
     });
 
-    var People = Elements.extend('People', function() {
+    let People = Elements.extend('People', function() {
       this.include(Accounts);
       this.Item = this.Item.extend('Person', function() {
         this.addProperty('firstName', String);
@@ -44,7 +44,7 @@ suite('KindaLocalRepository', function() {
       });
     });
 
-    var Companies = Elements.extend('Companies', function() {
+    let Companies = Elements.extend('Companies', function() {
       this.include(Accounts);
       this.Item = this.Item.extend('Company', function() {
         this.addProperty('name', String);
@@ -52,20 +52,15 @@ suite('KindaLocalRepository', function() {
       });
     });
 
-    repository = KindaLocalRepository.create(
-      'Test',
-      'mysql://test@localhost/test',
-      [Elements, Accounts, People, Companies]
-    );
+    repository = KindaLocalRepository.create({
+      name: 'Test',
+      url: 'mysql://test@localhost/test',
+      collections: [Elements, Accounts, People, Companies]
+    });
 
     accounts = repository.createCollection('Accounts');
-    accounts.context = {};
-
     people = repository.createCollection('People');
-    people.context = {};
-
     companies = repository.createCollection('Companies');
-    companies.context = {};
   });
 
   suiteTeardown(function *() {
@@ -73,48 +68,48 @@ suite('KindaLocalRepository', function() {
   });
 
   test('get root collection class', function *() {
-    var klass = repository.getRootCollectionClass();
-    assert.strictEqual(klass.getName(), 'Elements');
+    let klass = repository.rootCollectionClass;
+    assert.strictEqual(klass.name, 'Elements');
   });
 
   test('repository id', function *() {
-    var id = yield repository.getRepositoryId();
+    let id = yield repository.getRepositoryId();
     assert.ok(id);
   });
 
   test('put, get and delete some items', function *() {
-    var mvila = people.createItem({
+    let mvila = people.createItem({
       accountNumber: 12345,
       firstName: 'Manuel',
       lastName: 'Vila',
       country: 'France'
     });
     yield mvila.save();
-    var id = mvila.id;
-    var item = yield people.getItem(id);
+    let id = mvila.id;
+    let item = yield people.getItem(id);
     assert.strictEqual(item.accountNumber, 12345);
     assert.strictEqual(item.firstName, 'Manuel');
-    var hasBeenDeleted = yield item.delete();
+    let hasBeenDeleted = yield item.delete();
     assert.isTrue(hasBeenDeleted);
-    var item = yield people.getItem(id, { errorIfMissing: false });
+    item = yield people.getItem(id, { errorIfMissing: false });
     assert.isUndefined(item);
   });
 
   test('get a missing item', function *() {
-    var err = yield catchError(function *() {
+    let err = yield catchError(function *() {
       yield people.getItem('xyz');
     });
     assert.instanceOf(err, Error);
 
-    var item = yield people.getItem('xyz', { errorIfMissing: false });
+    let item = yield people.getItem('xyz', { errorIfMissing: false });
     assert.isUndefined(item);
   });
 
   test('put an already existing item', function *() {
-    var jack = people.createItem({ firstName: 'Jack', country: 'USA' });
+    let jack = people.createItem({ firstName: 'Jack', country: 'USA' });
     yield jack.save();
-    var err = yield catchError(function *() {
-      var jack2 = people.createItem({ id: jack.id, firstName: 'Jack', country: 'UK' });
+    let err = yield catchError(function *() {
+      let jack2 = people.createItem({ id: jack.id, firstName: 'Jack', country: 'UK' });
       yield jack2.save();
     });
     assert.instanceOf(err, Error);
@@ -123,13 +118,13 @@ suite('KindaLocalRepository', function() {
   });
 
   test('delete a missing item', function *() {
-    var err = yield catchError(function *() {
+    let err = yield catchError(function *() {
       yield people.deleteItem('xyz');
     });
     assert.instanceOf(err, Error);
 
-    var hasBeenDeleted;
-    var err = yield catchError(function *() {
+    let hasBeenDeleted;
+    err = yield catchError(function *() {
       hasBeenDeleted = yield people.deleteItem('xyz', { errorIfMissing: false });
     });
     assert.isFalse(hasBeenDeleted);
@@ -188,61 +183,61 @@ suite('KindaLocalRepository', function() {
     });
 
     test('get many items by id', function *() {
-      var items = yield accounts.getItems(['aaa', 'ccc']);
+      let items = yield accounts.getItems(['aaa', 'ccc']);
       assert.strictEqual(items.length, 2);
-      assert.strictEqual(items[0].getClassName(), 'Account');
+      assert.strictEqual(items[0].class.name, 'Account');
       assert.strictEqual(items[0].id, 'aaa');
       assert.strictEqual(items[0].accountNumber, 45329);
-      assert.deepEqual(items[1].getClassName(), 'Company');
+      assert.deepEqual(items[1].class.name, 'Company');
       assert.strictEqual(items[1].id, 'ccc');
       assert.strictEqual(items[1].accountNumber, 7002);
     });
 
     test('find all items in a collection', function *() {
-      var items = yield companies.findItems();
+      let items = yield companies.findItems();
       assert.strictEqual(items.length, 2);
-      assert.strictEqual(items[0].getClassName(), 'Company');
+      assert.strictEqual(items[0].class.name, 'Company');
       assert.strictEqual(items[0].id, 'ccc');
       assert.strictEqual(items[0].name, 'Kinda Ltd');
-      assert.strictEqual(items[1].getClassName(), 'Company');
+      assert.strictEqual(items[1].class.name, 'Company');
       assert.strictEqual(items[1].id, 'fff');
       assert.strictEqual(items[1].name, 'Fleur SARL');
     });
 
     test('find and order items', function *() {
-      var items = yield people.findItems({ order: 'accountNumber' });
+      let items = yield people.findItems({ order: 'accountNumber' });
       assert.strictEqual(items.length, 3);
-      var numbers = _.pluck(items, 'accountNumber');
+      let numbers = _.pluck(items, 'accountNumber');
       assert.deepEqual(numbers, [888, 3246, 55498]);
     });
 
     test('find items with a query', function *() {
-      var items = yield accounts.findItems({ query: { country: 'USA' } });
-      var ids = _.pluck(items, 'id');
+      let items = yield accounts.findItems({ query: { country: 'USA' } });
+      let ids = _.pluck(items, 'id');
       assert.deepEqual(ids, ['bbb', 'ddd']);
 
-      var items = yield companies.findItems({ query: { country: 'UK' } });
+      items = yield companies.findItems({ query: { country: 'UK' } });
       assert.strictEqual(items.length, 0);
     });
 
     test('count all items in a collection', function *() {
-      var count = yield people.countItems();
+      let count = yield people.countItems();
       assert.strictEqual(count, 3);
     });
 
     test('count items with a query', function *() {
-      var count = yield accounts.countItems({ query: { country: 'France' } });
+      let count = yield accounts.countItems({ query: { country: 'France' } });
       assert.strictEqual(count, 3);
 
-      var count = yield people.countItems({ query: { country: 'France' } });
+      count = yield people.countItems({ query: { country: 'France' } });
       assert.strictEqual(count, 1);
 
-      var count = yield companies.countItems({ query: { country: 'Spain' } });
+      count = yield companies.countItems({ query: { country: 'Spain' } });
       assert.strictEqual(count, 0);
     });
 
     test('iterate over items', function *() {
-      var ids = [];
+      let ids = [];
       yield accounts.forEachItems({ batchSize: 2 }, function *(item) {
         ids.push(item.id);
       });
@@ -250,47 +245,49 @@ suite('KindaLocalRepository', function() {
     });
 
     test('find and delete items', function *() {
-      var options = { query: { country: 'France' }, batchSize: 2 };
-      var deletedItemsCount = yield accounts.findAndDeleteItems(options);
+      let options = { query: { country: 'France' }, batchSize: 2 };
+      let deletedItemsCount = yield accounts.findAndDeleteItems(options);
       assert.strictEqual(deletedItemsCount, 3);
-      var items = yield accounts.findItems();
-      var ids = _.pluck(items, 'id');
+      let items = yield accounts.findItems();
+      let ids = _.pluck(items, 'id');
       assert.deepEqual(ids, ['bbb', 'ccc', 'ddd']);
       deletedItemsCount = yield accounts.findAndDeleteItems(options);
       assert.strictEqual(deletedItemsCount, 0);
     });
 
     test('change an item inside a transaction', function *() {
-      assert.isFalse(people.getRepository().isInsideTransaction());
-      yield people.transaction(function *() {
-        assert.isTrue(people.getRepository().isInsideTransaction());
-        var item = yield people.getItem('bbb');
-        assert.strictEqual(item.lastName, 'Daniel');
-        item.lastName = 'D.';
-        yield item.save();
-        var item = yield people.getItem('bbb');
-        assert.strictEqual(item.lastName, 'D.');
+      let item = yield people.getItem('bbb');
+      assert.strictEqual(item.lastName, 'Daniel');
+      assert.isFalse(item.isInsideTransaction);
+      yield item.transaction(function *(newItem) {
+        assert.isTrue(newItem.isInsideTransaction);
+        newItem.lastName = 'D.';
+        yield newItem.save();
+        let loadedItem = yield newItem.collection.getItem('bbb');
+        assert.strictEqual(loadedItem.lastName, 'D.');
       });
-      var item = yield people.getItem('bbb');
+      assert.strictEqual(item.lastName, 'D.');
+      item = yield people.getItem('bbb');
       assert.strictEqual(item.lastName, 'D.');
     });
 
     test('change an item inside an aborted transaction', function *() {
-      var err = yield catchError(function *() {
-        assert.isFalse(people.getRepository().isInsideTransaction());
-        yield people.transaction(function *() {
-          assert.isTrue(people.getRepository().isInsideTransaction());
-          var item = yield people.getItem('bbb');
-          assert.strictEqual(item.lastName, 'Daniel');
-          item.lastName = 'D.';
-          yield item.save();
-          var item = yield people.getItem('bbb');
-          assert.strictEqual(item.lastName, 'D.');
-          throw new Error('something wrong');
+      let item = yield people.getItem('bbb');
+      assert.strictEqual(item.lastName, 'Daniel');
+      let err = yield catchError(function *() {
+        assert.isFalse(item.isInsideTransaction);
+        yield item.transaction(function *(newItem) {
+          assert.isTrue(newItem.isInsideTransaction);
+          newItem.lastName = 'D.';
+          yield newItem.save();
+          let loadedItem = yield newItem.collection.getItem('bbb');
+          assert.strictEqual(loadedItem.lastName, 'D.');
+          throw new Error('something is wrong');
         });
       });
       assert.instanceOf(err, Error);
-      var item = yield people.getItem('bbb');
+      assert.strictEqual(item.lastName, 'Daniel');
+      item = yield people.getItem('bbb');
       assert.strictEqual(item.lastName, 'Daniel');
     });
   }); // 'with many items' suite
