@@ -11,8 +11,13 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
   this.isLocal = true; // TODO: improve this
 
   let superCreator = this.creator;
-  this.creator = function(options = {}) {
-    superCreator.call(this, options);
+  this.creator = function(application, options) {
+    if (_.isPlainObject(application)) {
+      options = application;
+      application = undefined;
+    }
+    if (!options) options = {};
+    superCreator.call(this, application, options);
 
     let classes = [];
     _.forOwn(this.collectionClasses, klass => {
