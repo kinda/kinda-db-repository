@@ -16,7 +16,7 @@ deploy:
   provider: npm
   email: mvila@3base.com
   api_key:
-    secure: IcyIsiv/DmUOtXlJoUF1D5PHnjK/kCrDr2BQCm9iLxp6or66Ti0Jeq/+q748Jm8B3hogysFu/8qYxvzmJ09FUiJZ3VyH1PIB9rj2oWKOHqj23XQApqgdDbfWgYOoBkm7maACekfD7xNNSesfc4ilrZuqEWyX+hCyf/zpgpgDfsg=
+    secure: ErEqyzLNRMvtAsB2nMpNVY2+i0NilgJ7MAAffg2EzwIQl7aRnHlX8ww/4SQk3GCBONyl1yZPbky3KgYcYmphIAyGAduOZp6L0BcPTAzBJIkvQQvJhXMJHs0/kB38FjaTpoERBnfxmCdo5cSOKSqTdIDVlv+vfvy09LiRDyfZlKs=
   skip_cleanup: true
 notifications:
   email: false
