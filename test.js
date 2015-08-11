@@ -1,6 +1,5 @@
 'use strict';
 
-require('co-mocha');
 let assert = require('chai').assert;
 let _ = require('lodash');
 let Collection = require('kinda-collection');
@@ -9,17 +8,17 @@ let KindaLocalRepository = require('./src');
 suite('KindaLocalRepository', function() {
   let repository, accounts, people, companies;
 
-  let catchError = function *(fn) {
+  let catchError = async function(fn) {
     let err;
     try {
-      yield fn();
+      await fn();
     } catch (e) {
       err = e;
     }
     return err;
   };
 
-  suiteSetup(function *() {
+  suiteSetup(async function() {
     let Elements = Collection.extend('Elements', function() {
       this.Item = this.Item.extend('Element', function() {
         this.addPrimaryKeyProperty('id', String);
@@ -63,109 +62,109 @@ suite('KindaLocalRepository', function() {
     companies = repository.createCollection('Companies');
   });
 
-  suiteTeardown(function *() {
-    yield repository.destroyRepository();
+  suiteTeardown(async function() {
+    await repository.destroyRepository();
   });
 
-  test('get root collection class', function *() {
+  test('get root collection class', async function() {
     let klass = repository.rootCollectionClass;
     assert.strictEqual(klass.name, 'Elements');
   });
 
-  test('repository id', function *() {
-    let id = yield repository.getRepositoryId();
+  test('repository id', async function() {
+    let id = await repository.getRepositoryId();
     assert.ok(id);
   });
 
-  test('put, get and delete some items', function *() {
+  test('put, get and delete some items', async function() {
     let mvila = people.createItem({
       accountNumber: 12345,
       firstName: 'Manuel',
       lastName: 'Vila',
       country: 'France'
     });
-    yield mvila.save();
+    await mvila.save();
     let id = mvila.id;
-    let item = yield people.getItem(id);
+    let item = await people.getItem(id);
     assert.strictEqual(item.accountNumber, 12345);
     assert.strictEqual(item.firstName, 'Manuel');
-    let hasBeenDeleted = yield item.delete();
+    let hasBeenDeleted = await item.delete();
     assert.isTrue(hasBeenDeleted);
-    item = yield people.getItem(id, { errorIfMissing: false });
+    item = await people.getItem(id, { errorIfMissing: false });
     assert.isUndefined(item);
   });
 
-  test('get a missing item', function *() {
-    let err = yield catchError(function *() {
-      yield people.getItem('xyz');
+  test('get a missing item', async function() {
+    let err = await catchError(async function() {
+      await people.getItem('xyz');
     });
     assert.instanceOf(err, Error);
 
-    let item = yield people.getItem('xyz', { errorIfMissing: false });
+    let item = await people.getItem('xyz', { errorIfMissing: false });
     assert.isUndefined(item);
   });
 
-  test('put an already existing item', function *() {
+  test('put an already existing item', async function() {
     let jack = people.createItem({ firstName: 'Jack', country: 'USA' });
-    yield jack.save();
-    let err = yield catchError(function *() {
+    await jack.save();
+    let err = await catchError(async function() {
       let jack2 = people.createItem({ id: jack.id, firstName: 'Jack', country: 'UK' });
-      yield jack2.save();
+      await jack2.save();
     });
     assert.instanceOf(err, Error);
 
-    yield jack.delete();
+    await jack.delete();
   });
 
-  test('delete a missing item', function *() {
-    let err = yield catchError(function *() {
-      yield people.deleteItem('xyz');
+  test('delete a missing item', async function() {
+    let err = await catchError(async function() {
+      await people.deleteItem('xyz');
     });
     assert.instanceOf(err, Error);
 
     let hasBeenDeleted;
-    err = yield catchError(function *() {
-      hasBeenDeleted = yield people.deleteItem('xyz', { errorIfMissing: false });
+    err = await catchError(async function() {
+      hasBeenDeleted = await people.deleteItem('xyz', { errorIfMissing: false });
     });
     assert.isFalse(hasBeenDeleted);
     assert.isUndefined(err);
   });
 
   suite('with many items', function() {
-    setup(function *() {
-      yield accounts.putItem({
+    setup(async function() {
+      await accounts.putItem({
         id: 'aaa',
         accountNumber: 45329,
         country: 'France'
       });
-      yield people.putItem({
+      await people.putItem({
         id: 'bbb',
         accountNumber: 3246,
         firstName: 'Jack',
         lastName: 'Daniel',
         country: 'USA'
       });
-      yield companies.putItem({
+      await companies.putItem({
         id: 'ccc',
         accountNumber: 7002,
         name: 'Kinda Ltd',
         country: 'China'
       });
-      yield people.putItem({
+      await people.putItem({
         id: 'ddd',
         accountNumber: 55498,
         firstName: 'Vincent',
         lastName: 'Vila',
         country: 'USA'
       });
-      yield people.putItem({
+      await people.putItem({
         id: 'eee',
         accountNumber: 888,
         firstName: 'Pierre',
         lastName: 'Dupont',
         country: 'France'
       });
-      yield companies.putItem({
+      await companies.putItem({
         id: 'fff',
         accountNumber: 8775,
         name: 'Fleur SARL',
@@ -173,17 +172,17 @@ suite('KindaLocalRepository', function() {
       });
     });
 
-    teardown(function *() {
-      yield accounts.deleteItem('aaa', { errorIfMissing: false });
-      yield accounts.deleteItem('bbb', { errorIfMissing: false });
-      yield accounts.deleteItem('ccc', { errorIfMissing: false });
-      yield accounts.deleteItem('ddd', { errorIfMissing: false });
-      yield accounts.deleteItem('eee', { errorIfMissing: false });
-      yield accounts.deleteItem('fff', { errorIfMissing: false });
+    teardown(async function() {
+      await accounts.deleteItem('aaa', { errorIfMissing: false });
+      await accounts.deleteItem('bbb', { errorIfMissing: false });
+      await accounts.deleteItem('ccc', { errorIfMissing: false });
+      await accounts.deleteItem('ddd', { errorIfMissing: false });
+      await accounts.deleteItem('eee', { errorIfMissing: false });
+      await accounts.deleteItem('fff', { errorIfMissing: false });
     });
 
-    test('get many items by id', function *() {
-      let items = yield accounts.getItems(['aaa', 'ccc']);
+    test('get many items by id', async function() {
+      let items = await accounts.getItems(['aaa', 'ccc']);
       assert.strictEqual(items.length, 2);
       assert.strictEqual(items[0].class.name, 'Account');
       assert.strictEqual(items[0].id, 'aaa');
@@ -193,8 +192,8 @@ suite('KindaLocalRepository', function() {
       assert.strictEqual(items[1].accountNumber, 7002);
     });
 
-    test('find all items in a collection', function *() {
-      let items = yield companies.findItems();
+    test('find all items in a collection', async function() {
+      let items = await companies.findItems();
       assert.strictEqual(items.length, 2);
       assert.strictEqual(items[0].class.name, 'Company');
       assert.strictEqual(items[0].id, 'ccc');
@@ -204,90 +203,90 @@ suite('KindaLocalRepository', function() {
       assert.strictEqual(items[1].name, 'Fleur SARL');
     });
 
-    test('find and order items', function *() {
-      let items = yield people.findItems({ order: 'accountNumber' });
+    test('find and order items', async function() {
+      let items = await people.findItems({ order: 'accountNumber' });
       assert.strictEqual(items.length, 3);
       let numbers = _.pluck(items, 'accountNumber');
       assert.deepEqual(numbers, [888, 3246, 55498]);
     });
 
-    test('find items with a query', function *() {
-      let items = yield accounts.findItems({ query: { country: 'USA' } });
+    test('find items with a query', async function() {
+      let items = await accounts.findItems({ query: { country: 'USA' } });
       let ids = _.pluck(items, 'id');
       assert.deepEqual(ids, ['bbb', 'ddd']);
 
-      items = yield companies.findItems({ query: { country: 'UK' } });
+      items = await companies.findItems({ query: { country: 'UK' } });
       assert.strictEqual(items.length, 0);
     });
 
-    test('count all items in a collection', function *() {
-      let count = yield people.countItems();
+    test('count all items in a collection', async function() {
+      let count = await people.countItems();
       assert.strictEqual(count, 3);
     });
 
-    test('count items with a query', function *() {
-      let count = yield accounts.countItems({ query: { country: 'France' } });
+    test('count items with a query', async function() {
+      let count = await accounts.countItems({ query: { country: 'France' } });
       assert.strictEqual(count, 3);
 
-      count = yield people.countItems({ query: { country: 'France' } });
+      count = await people.countItems({ query: { country: 'France' } });
       assert.strictEqual(count, 1);
 
-      count = yield companies.countItems({ query: { country: 'Spain' } });
+      count = await companies.countItems({ query: { country: 'Spain' } });
       assert.strictEqual(count, 0);
     });
 
-    test('iterate over items', function *() {
+    test('iterate over items', async function() {
       let ids = [];
-      yield accounts.forEachItems({ batchSize: 2 }, function *(item) {
+      await accounts.forEachItems({ batchSize: 2 }, async function(item) {
         ids.push(item.id);
       });
       assert.deepEqual(ids, ['aaa', 'bbb', 'ccc', 'ddd', 'eee', 'fff']);
     });
 
-    test('find and delete items', function *() {
+    test('find and delete items', async function() {
       let options = { query: { country: 'France' }, batchSize: 2 };
-      let deletedItemsCount = yield accounts.findAndDeleteItems(options);
+      let deletedItemsCount = await accounts.findAndDeleteItems(options);
       assert.strictEqual(deletedItemsCount, 3);
-      let items = yield accounts.findItems();
+      let items = await accounts.findItems();
       let ids = _.pluck(items, 'id');
       assert.deepEqual(ids, ['bbb', 'ccc', 'ddd']);
-      deletedItemsCount = yield accounts.findAndDeleteItems(options);
+      deletedItemsCount = await accounts.findAndDeleteItems(options);
       assert.strictEqual(deletedItemsCount, 0);
     });
 
-    test('change an item inside a transaction', function *() {
-      let item = yield people.getItem('bbb');
+    test('change an item inside a transaction', async function() {
+      let item = await people.getItem('bbb');
       assert.strictEqual(item.lastName, 'Daniel');
       assert.isFalse(item.isInsideTransaction);
-      yield item.transaction(function *(newItem) {
+      await item.transaction(async function(newItem) {
         assert.isTrue(newItem.isInsideTransaction);
         newItem.lastName = 'D.';
-        yield newItem.save();
-        let loadedItem = yield newItem.collection.getItem('bbb');
+        await newItem.save();
+        let loadedItem = await newItem.collection.getItem('bbb');
         assert.strictEqual(loadedItem.lastName, 'D.');
       });
       assert.strictEqual(item.lastName, 'D.');
-      item = yield people.getItem('bbb');
+      item = await people.getItem('bbb');
       assert.strictEqual(item.lastName, 'D.');
     });
 
-    test('change an item inside an aborted transaction', function *() {
-      let item = yield people.getItem('bbb');
+    test('change an item inside an aborted transaction', async function() {
+      let item = await people.getItem('bbb');
       assert.strictEqual(item.lastName, 'Daniel');
-      let err = yield catchError(function *() {
+      let err = await catchError(async function() {
         assert.isFalse(item.isInsideTransaction);
-        yield item.transaction(function *(newItem) {
+        await item.transaction(async function(newItem) {
           assert.isTrue(newItem.isInsideTransaction);
           newItem.lastName = 'D.';
-          yield newItem.save();
-          let loadedItem = yield newItem.collection.getItem('bbb');
+          await newItem.save();
+          let loadedItem = await newItem.collection.getItem('bbb');
           assert.strictEqual(loadedItem.lastName, 'D.');
           throw new Error('something is wrong');
         });
       });
       assert.instanceOf(err, Error);
       assert.strictEqual(item.lastName, 'Daniel');
-      item = yield people.getItem('bbb');
+      item = await people.getItem('bbb');
       assert.strictEqual(item.lastName, 'Daniel');
     });
   }); // 'with many items' suite

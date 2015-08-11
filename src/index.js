@@ -48,7 +48,7 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     }
   });
 
-  this.initializeRepository = function *() {
+  this.initializeRepository = async function() {
     if (this.hasBeenInitialized) return;
     if (this.isInitializing) return;
     if (this.isInsideTransaction) {
@@ -56,56 +56,56 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     }
     this.isInitializing = true;
     try {
-      yield this.objectDatabase.initializeObjectDatabase();
-      let hasBeenCreated = yield this.createRepositoryIfDoesNotExist();
+      await this.objectDatabase.initializeObjectDatabase();
+      let hasBeenCreated = await this.createRepositoryIfDoesNotExist();
       if (!hasBeenCreated) {
-        yield this.objectDatabase.database.lockDatabase();
+        await this.objectDatabase.database.lockDatabase();
         try {
-          yield this.upgradeRepository();
+          await this.upgradeRepository();
         } finally {
-          yield this.objectDatabase.database.unlockDatabase();
+          await this.objectDatabase.database.unlockDatabase();
         }
       }
       this.hasBeenInitialized = true;
-      yield this.emitAsync('didInitialize');
+      await this.emit('didInitialize');
     } finally {
       this.isInitializing = false;
     }
   };
 
-  this.loadRepositoryRecord = function *(tr = this.store, errorIfMissing = true) {
-    yield this.initializeRepository();
-    return yield tr.get([this.name, '$Repository'], { errorIfMissing });
+  this.loadRepositoryRecord = async function(tr = this.store, errorIfMissing = true) {
+    await this.initializeRepository();
+    return await tr.get([this.name, '$Repository'], { errorIfMissing });
   };
 
-  this.saveRepositoryRecord = function *(record, tr = this.store, errorIfExists) {
-    yield tr.put([this.name, '$Repository'], record, {
+  this.saveRepositoryRecord = async function(record, tr = this.store, errorIfExists) {
+    await tr.put([this.name, '$Repository'], record, {
       errorIfExists,
       createIfMissing: !errorIfExists
     });
   };
 
-  this.createRepositoryIfDoesNotExist = function *() {
+  this.createRepositoryIfDoesNotExist = async function() {
     let hasBeenCreated = false;
-    yield this.store.transaction(function *(tr) {
-      let record = yield this.loadRepositoryRecord(tr, false);
+    await this.store.transaction(async function(tr) {
+      let record = await this.loadRepositoryRecord(tr, false);
       if (!record) {
         record = {
           name: this.name,
           version: VERSION,
           id: idgen(16)
         };
-        yield this.saveRepositoryRecord(record, tr, true);
+        await this.saveRepositoryRecord(record, tr, true);
         hasBeenCreated = true;
-        yield this.emitAsync('didCreate');
+        await this.emit('didCreate');
         this.log.info(`Repository '${this.name}' created`);
       }
     }.bind(this));
     return hasBeenCreated;
   };
 
-  this.upgradeRepository = function *() {
-    let record = yield this.loadRepositoryRecord();
+  this.upgradeRepository = async function() {
+    let record = await this.loadRepositoryRecord();
     let version = record.version;
 
     if (version === VERSION) return;
@@ -121,34 +121,34 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     }
 
     record.version = VERSION;
-    yield this.saveRepositoryRecord(record);
+    await this.saveRepositoryRecord(record);
     this.log.info(`Repository '${this.name}' upgraded to version ${VERSION}`);
 
     this.emit('upgradeDidStop');
   };
 
-  this.destroyRepository = function *() {
-    yield this.emitAsync('willDestroy');
-    yield this.objectDatabase.destroyObjectDatabase();
+  this.destroyRepository = async function() {
+    await this.emit('willDestroy');
+    await this.objectDatabase.destroyObjectDatabase();
     this.hasBeenInitialized = false;
     delete this.repository._repositoryId;
-    yield this.emitAsync('didDestroy');
+    await this.emit('didDestroy');
   };
 
-  this.getRepositoryId = function *() {
+  this.getRepositoryId = async function() {
     if (this._repositoryId) return this._repositoryId;
-    let record = yield this.loadRepositoryRecord();
+    let record = await this.loadRepositoryRecord();
     this.repository._repositoryId = record.id;
     return record.id;
   };
 
-  this.transaction = function *(fn, options) {
-    if (this.isInsideTransaction) return yield fn(this);
-    yield this.initializeRepository();
-    return yield this.objectDatabase.transaction(function *(tr) {
+  this.transaction = async function(fn, options) {
+    if (this.isInsideTransaction) return await fn(this);
+    await this.initializeRepository();
+    return await this.objectDatabase.transaction(async function(tr) {
       let transaction = Object.create(this);
       transaction.objectDatabase = tr;
-      return yield fn(transaction);
+      return await fn(transaction);
     }.bind(this), options);
   };
 
@@ -160,11 +160,11 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
 
   // === Operations ====
 
-  this.getItem = function *(item, options) {
+  this.getItem = async function(item, options) {
     let className = item.class.name;
     let key = item.primaryKeyValue;
-    yield this.initializeRepository();
-    let result = yield this.objectDatabase.getItem(className, key, options);
+    await this.initializeRepository();
+    let result = await this.objectDatabase.getItem(className, key, options);
     if (!result) return undefined; // means item is not found and errorIfMissing is false
     let resultClassName = result.classes[0];
     if (resultClassName === className) {
@@ -176,35 +176,35 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     return item;
   };
 
-  this.putItem = function *(item, options = {}) {
+  this.putItem = async function(item, options = {}) {
     let classNames = item.classNames;
     let key = item.primaryKeyValue;
     let json = item.serialize();
     options = _.clone(options);
     if (item.isNew) options.errorIfExists = true;
-    yield this.initializeRepository();
-    yield this.objectDatabase.putItem(classNames, key, json, options);
-    yield this.emitAsync('didPutItem', item, options);
+    await this.initializeRepository();
+    await this.objectDatabase.putItem(classNames, key, json, options);
+    await this.emit('didPutItem', item, options);
   };
 
-  this.deleteItem = function *(item, options) {
+  this.deleteItem = async function(item, options) {
     let className = item.class.name;
     let key = item.primaryKeyValue;
-    yield this.initializeRepository();
-    let hasBeenDeleted = yield this.objectDatabase.deleteItem(
+    await this.initializeRepository();
+    let hasBeenDeleted = await this.objectDatabase.deleteItem(
       className, key, options
     );
-    if (hasBeenDeleted) yield this.emitAsync('didDeleteItem', item, options);
+    if (hasBeenDeleted) await this.emit('didDeleteItem', item, options);
     return hasBeenDeleted;
   };
 
-  this.getItems = function *(items, options) {
+  this.getItems = async function(items, options) {
     if (!items.length) return [];
     // we suppose that every items are part of the same collection:
     let className = items[0].class.name;
     let keys = _.pluck(items, 'primaryKeyValue');
-    yield this.initializeRepository();
-    let results = yield this.objectDatabase.getItems(className, keys, options);
+    await this.initializeRepository();
+    let results = await this.objectDatabase.getItems(className, keys, options);
     let cache = {};
     items = results.map(result => {
       // TODO: like getItem(), try to reuse the passed items instead of
@@ -216,10 +216,10 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     return items;
   };
 
-  this.findItems = function *(collection, options) {
+  this.findItems = async function(collection, options) {
     let className = collection.Item.name;
-    yield this.initializeRepository();
-    let results = yield this.objectDatabase.findItems(className, options);
+    await this.initializeRepository();
+    let results = await this.objectDatabase.findItems(className, options);
     let cache = {};
     let items = results.map(result => {
       let resultClassName = result.classes[0];
@@ -229,28 +229,28 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     return items;
   };
 
-  this.countItems = function *(collection, options) {
+  this.countItems = async function(collection, options) {
     let className = collection.Item.name;
-    yield this.initializeRepository();
-    return yield this.objectDatabase.countItems(className, options);
+    await this.initializeRepository();
+    return await this.objectDatabase.countItems(className, options);
   };
 
-  this.forEachItems = function *(collection, options, fn, thisArg) {
+  this.forEachItems = async function(collection, options, fn, thisArg) {
     let className = collection.Item.name;
     let cache = {};
-    yield this.initializeRepository();
-    yield this.objectDatabase.forEachItems(className, options, function *(result) {
+    await this.initializeRepository();
+    await this.objectDatabase.forEachItems(className, options, async function(result) {
       let resultClassName = result.classes[0];
       let realCollection = this.createCollectionFromItemClassName(resultClassName, cache);
       let item = realCollection.unserializeItem(result.value);
-      yield fn.call(thisArg, item);
+      await fn.call(thisArg, item);
     }, this);
   };
 
-  this.findAndDeleteItems = function *(collection, options) {
+  this.findAndDeleteItems = async function(collection, options) {
     let deletedItemsCount = 0;
-    yield this.forEachItems(collection, options, function *(item) {
-      let hasBeenDeleted = yield item.delete({ errorIfMissing: false });
+    await this.forEachItems(collection, options, async function(item) {
+      let hasBeenDeleted = await item.delete({ errorIfMissing: false });
       if (hasBeenDeleted) deletedItemsCount++;
     }, this);
     return deletedItemsCount;
