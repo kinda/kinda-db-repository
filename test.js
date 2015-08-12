@@ -22,6 +22,8 @@ suite('KindaLocalRepository', function() {
     let Elements = Collection.extend('Elements', function() {
       this.Item = this.Item.extend('Element', function() {
         this.addPrimaryKeyProperty('id', String);
+        this.addCreatedOnProperty('createdOn');
+        this.addIndex('createdOn');
       });
     });
 
@@ -83,7 +85,9 @@ suite('KindaLocalRepository', function() {
       lastName: 'Vila',
       country: 'France'
     });
+    assert.isUndefined(mvila.createdOn);
     await mvila.save();
+    assert.isDefined(mvila.createdOn);
     let id = mvila.id;
     let item = await people.getItem(id);
     assert.strictEqual(item.accountNumber, 12345);
