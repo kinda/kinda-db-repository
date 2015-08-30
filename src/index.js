@@ -2,10 +2,12 @@
 
 let _ = require('lodash');
 let idgen = require('idgen');
+let util = require('kinda-util').create();
 let KindaAbstractRepository = require('kinda-abstract-repository');
 let KindaObjectDB = require('kinda-object-db');
 
 const VERSION = 1;
+const RESPIRATION_RATE = 250;
 
 let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository', function() {
   this.isLocal = true; // TODO: improve this
@@ -203,29 +205,35 @@ let KindaLocalRepository = KindaAbstractRepository.extend('KindaLocalRepository'
     // we suppose that every items are part of the same collection:
     let className = items[0].class.name;
     let keys = _.pluck(items, 'primaryKeyValue');
+    let iterationsCount = 0;
     await this.initializeRepository();
     let results = await this.objectDatabase.getItems(className, keys, options);
     let cache = {};
-    items = results.map(result => {
+    let finalItems = [];
+    for (let result of results) {
       // TODO: like getItem(), try to reuse the passed items instead of
       // build new one
       let resultClassName = result.classes[0];
       let realCollection = this.createCollectionFromItemClassName(resultClassName, cache);
-      return realCollection.unserializeItem(result.value);
-    });
-    return items;
+      finalItems.push(realCollection.unserializeItem(result.value));
+      if (++iterationsCount % RESPIRATION_RATE === 0) await util.timeout(0);
+    }
+    return finalItems;
   };
 
   this.findItems = async function(collection, options) {
     let className = collection.Item.name;
+    let iterationsCount = 0;
     await this.initializeRepository();
     let results = await this.objectDatabase.findItems(className, options);
     let cache = {};
-    let items = results.map(result => {
+    let items = [];
+    for (let result of results) {
       let resultClassName = result.classes[0];
       let realCollection = this.createCollectionFromItemClassName(resultClassName, cache);
-      return realCollection.unserializeItem(result.value);
-    });
+      items.push(realCollection.unserializeItem(result.value));
+      if (++iterationsCount % RESPIRATION_RATE === 0) await util.timeout(0);
+    }
     return items;
   };
 
